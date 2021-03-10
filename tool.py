@@ -1,32 +1,26 @@
 # Thesis Annotation Tool
-# version 0.1
+# version 0.2
 # by Robin van der Noord, s3745686
 # Python 3.8 or better
-
 import sys
-import csv
 import re
+import csv
 
 ENCODING = 'UTF-8'
 
 
 class Tool:
-    def __init__(self, args):
-        if not args:
-            print('Please specify a file', file=sys.stderr)
-            exit(1)
-        self.file = args[0]
-        self.sep = args[1] if len(args) > 1 else '\t'
-        self.out = args[2] if len(args) > 2 else self.file
-
-        self.history = {}  # <- to fill in duplicates
-        self.todo = []  # <- no level yet
+    def __init__(self, input_file, output_file=None):
+        self.output_file = output_file or input_file
 
         username_re = re.compile(r'@(\w){1,15}')
         url_re = re.compile(r'https?://t.co/\w+')
 
-        with open(self.file, encoding=ENCODING) as f:
-            reader = csv.DictReader(f, delimiter=self.sep)
+        self.history = {}
+        self.todo = []
+
+        with open(input_file, encoding=ENCODING) as f:
+            reader = csv.DictReader(f, delimiter='\t')
 
             # build history of scores:
             for line in reader:
@@ -38,17 +32,62 @@ class Tool:
     def save(self):
         print('saving')
 
-        with open(self.out, 'w', newline='', encoding=ENCODING) as csvfile:
-            fieldnames = ['id', 'text', 'level']
+        with open(self.output_file, 'w', newline='', encoding=ENCODING) as csvfile:
+            fieldnames = ['id', 'text', 'user', 'source', 'user.description', 'split', 'explicitness', 'target']
             writer = csv.DictWriter(csvfile,
                                     fieldnames=fieldnames,
-                                    delimiter=self.sep,
+                                    delimiter='\t',
                                     extrasaction='ignore'  # <- ignore 'stripped'
                                     )
             writer.writeheader()
             writer.writerows(self.todo)
         print('done!')
         exit()
+
+    EXPLICITNESS = {
+        'e': 'EXPLICIT',
+        'i': 'IMPLICIT',
+        'n': 'NOT',
+    }
+
+    TARGET = {
+        'i': 'INDIVIDUAL',
+        'g': 'GROUP',
+        'o': 'OTHER'
+    }
+
+    def annotate_tweet(self, index, tweet):
+        explicitness_score = None
+        target_score = None
+
+        print(f"{index + 1}/{len(self.todo)}")
+        print(tweet['text'])
+        if (explicitness_score := tweet.get('explicitness')) and (target_score := tweet.get('target')) or (explicitness_score == 'NOT'):
+            print(f'Tweet already annotated with {explicitness_score} {f"and {target_score}" if target_score else ""}')
+            return
+
+        while True:
+            explicitness_choice = (input('EXPLICITNESS: [E]XPLICIT | [I]MPLICIT | [N]OT | [S]TOP ? ') + ' ')[0].lower()
+            if explicitness_choice in self.EXPLICITNESS.keys():
+                explicitness_score = self.EXPLICITNESS[explicitness_choice]
+                break
+            elif explicitness_choice == 's':
+                self.save()
+
+        if explicitness_score != 'NOT':
+            while True:
+                target_choice = (input('TARGET: [I]NDIVIDUAL | [G]ROUP | [O]THER | [S]TOP ? ') + ' ')[
+                    0].lower()
+                if target_choice in self.TARGET.keys():
+                    target_score = self.TARGET[target_choice]
+                    break
+                elif target_choice == 's':
+                    self.save()
+        else:
+            target_score = None
+
+        tweet['explicitness'] = explicitness_score
+        tweet['target'] = target_score
 
     def main(self):
         for (index, tweet) in enumerate(self.todo):
@@ -63,32 +102,8 @@ class Tool:
         # all done!
         self.save()
 
-    def annotate_tweet(self, index, tweet):
-        print(f"{index}/{len(self.todo)}")
-        print(tweet['text'])
-        if tweet.get('level'):
-            # already done!
-            print(f"!! Already filled in with {tweet['level']}")
-            pass  # continue
-        elif hist := self.history.get(tweet['stripped']):
-            tweet['level'] = hist  # hist stored the level
-            print(f"!! Seen before with {hist}")
-        else:
-
-            while True:  # no worries, it has an exit condition (2 even)
-                inp = input('1-7? 0 to save; ')
-                if not inp.isdigit() or int(inp) > 7:
-                    continue
-                choice = int(inp)
-                if not choice:
-                    # save and exit
-                    self.save()
-                tweet['level'] = choice
-                break
-            self.history[tweet['stripped']] = tweet
-
 
 if __name__ == '__main__':
-    t = Tool(sys.argv[1:])
+    t = Tool(*sys.argv[1:])
     t.main()
-    # usage: python tool.py <input file> [delimiter] [output file]
+    # usage: python tool.py <input file> [output file]
