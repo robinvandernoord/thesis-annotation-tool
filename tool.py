@@ -18,7 +18,8 @@ class Tool:
     TARGET = {
         'i': 'INDIVIDUAL',
         'g': 'GROUP',
-        'o': 'OTHER'
+        'o': 'OTHER',
+        'n': 'NOT',
     }
 
     def __init__(self, input_file, output_file=None):
@@ -88,7 +89,8 @@ class Tool:
             if explicitness_score != 'NOT':
                 while True:
                     target_choice = (
-                            input('TARGET: [I]NDIVIDUAL | [G]ROUP | [O]THER | [S]TOP ? ') + ' '  # ' ' prevents error
+                            input('TARGET: [I]NDIVIDUAL | [G]ROUP | [O]THER | [N]ONE | [S]TOP ? ') + ' '
+                    # ' ' prevents error
                     )[0].lower()
                     if target_choice in self.TARGET.keys():
                         target_score = self.TARGET[target_choice]
