@@ -1,6 +1,7 @@
 # Thesis Annotation Tool
 # version 2.1
 # by Robin van der Noord, s3745686
+# Small modification by Victor Zwart, s3746186
 # Python 3.8 or better
 import sys
 import re
@@ -22,14 +23,25 @@ class Tool:
         'n': 'NOT',
     }
 
-    def __init__(self, input_file, output_file=None):
-        self.output_file = output_file or input_file
+    def __init__(self, input_file, history_files):
+        self.output_file = input_file
 
         username_re = re.compile(r'@(\w){1,15}')
         url_re = re.compile(r'https?://t.co/\w+')
 
         self.history = {}
         self.todo = []
+
+        #to read previous annotated files.
+        for history_file in history_files:
+            with open(history_file, encoding=ENCODING) as f:
+                reader = csv.DictReader(f, delimiter='\t')
+
+                # build history of scores based on previous files:
+                for line in reader:
+                    line['stripped'] = re.sub(url_re, 'http://_', re.sub(username_re, '@_', line['text']))
+                    if line.get('explicitness') and not self.history.get(line['stripped']):
+                        self.history[line['stripped']] = (line['explicitness'], line.get('target'))
 
         with open(input_file, encoding=ENCODING) as f:
             reader = csv.DictReader(f, delimiter='\t')
@@ -118,6 +130,6 @@ class Tool:
 
 
 if __name__ == '__main__':
-    t = Tool(*sys.argv[1:])
+    t = Tool(sys.argv[1], sys.argv[2:])
     t.main()
-    # usage: python tool.py <input file> [output file]
+    # usage: python tool.py <input file> [files which are already (partly) annotated]
