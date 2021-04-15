@@ -5,6 +5,7 @@
 import sys
 import re
 import csv
+import os
 
 ENCODING = 'UTF-8'
 
@@ -36,7 +37,7 @@ class Tool:
 
             # build history of scores:
             for line in reader:
-                line['stripped'] = re.sub(url_re, 'http://_', re.sub(username_re, '@_', line['text']))
+                line['stripped'] = url_re.sub('https://_', username_re.sub('@_', line['text']))
                 if line.get('explicitness') and not self.history.get(line['stripped']):
                     self.history[line['stripped']] = (line['explicitness'], line.get('target'))
                 self.todo.append(line)
@@ -57,7 +58,8 @@ class Tool:
         exit()
 
     def annotate_tweet(self, index, tweet):
-        explicitness_score = None
+        os.system('cls') ## fixme remove
+        # explicitness_score = None
         target_score = None
 
         print(f"{index + 1}/{len(self.todo)}")
@@ -102,6 +104,8 @@ class Tool:
 
         tweet['explicitness'] = explicitness_score
         tweet['target'] = target_score
+        # update history
+        self.history[tweet['stripped']] = (explicitness_score, target_score)
 
     def main(self):
         for (index, tweet) in enumerate(self.todo):
