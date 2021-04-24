@@ -58,7 +58,6 @@ class Tool:
         exit()
 
     def annotate_tweet(self, index, tweet):
-        os.system('cls') ## fixme remove
         # explicitness_score = None
         target_score = None
 
