@@ -28,6 +28,10 @@ class CompareTool:
 
         self.stats = defaultdict(int)
 
+        # change these numbers (and todo: change logic) when using less or more files
+        self.full_agree = 4
+        self.majority_agree = 3
+
     def load_annotations(self):
         print("### Reading Files ###")
         tweets = {}
@@ -52,17 +56,17 @@ class CompareTool:
     def choose(self, annotation, goal):
         c = Counter([a[goal] for a in annotation]).most_common(2)
         label, cnt = c[0]
-        if cnt == 4:
+        if cnt == self.full_agree:
             # fully agree!
             self.stats[f'{goal}-agree'] += 1
             self.stats[f'{goal}-agree-{label}'] += 1
-        elif cnt == 3:
+        elif cnt >= self.majority_agree:
             # majority agree (3 vs 1)
             self.stats[f'{goal}-3majority'] += 1
             self.stats[f'{goal}-3majority-{label}'] += 1
         else:
             no2_label, no2_cnt = c[-1]
-            if no2_cnt == 2:
+            if no2_cnt == self.full_agree / 2:
                 # perfect split (2 vs 2)
                 self.stats[f'{goal}-split'] += 1
                 self.stats[f'{goal}-split-{label}+{no2_label}'] += 1
