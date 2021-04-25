@@ -42,8 +42,8 @@ class CompareTool:
                 for row in csv.DictReader(f, delimiter='\t'):
 
                     annotations[row['id']].append({
-                        'explicitness': row['explicitness'],
-                        'target': row['target'],
+                        'explicitness': row['explicitness'] or '',
+                        'target': row['target'] or '',
                     })
                     if not row['id'] in tweets:
                         del row['explicitness']
@@ -100,8 +100,8 @@ class CompareTool:
 
         index = 1
         for _id, tweet in self.tweets.items():
-            explicitness = tweet.get('explicitness')
-            target = tweet.get('target')
+            explicitness = tweet.get('explicitness', '')
+            target = tweet.get('target', '')
 
             if explicitness == "?" or target == "?":
                 print(f"{index}/{todo}")
