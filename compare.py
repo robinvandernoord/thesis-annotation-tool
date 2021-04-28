@@ -2,6 +2,7 @@
 # version 1.0
 # by Robin van der Noord, s3745686
 # Python 3.8 or better
+
 import datetime
 import sys
 import csv
