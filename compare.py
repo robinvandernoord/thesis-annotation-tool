@@ -26,7 +26,8 @@ class CompareTool:
         self.files = files
         self.tweets, self.annotations = self.load_annotations()
 
-        self.stats = defaultdict(int)
+        self.stats_basic = defaultdict(int)
+        self.stats_detail = defaultdict(int)
 
         # change these numbers (and todo: change logic) when using less or more files
         self.full_agree = 4
@@ -44,6 +45,8 @@ class CompareTool:
                     annotations[row['id']].append({
                         'explicitness': row['explicitness'] or '',
                         'target': row['target'] or '',
+                        'id': row['id'],
+                        'who': file,
                     })
                     if not row['id'] in tweets:
                         del row['explicitness']
@@ -51,45 +54,51 @@ class CompareTool:
                         # store all fields except annotations
                         tweets[row['id']] = row
 
+        print('loaded', len(tweets), len(annotations))
         return tweets, annotations
 
     def choose(self, annotation, goal):
+        if len(annotation) < self.majority_agree:
+            # not enough annotated this one -> skip
+            self.stats_basic['skipped'] += 1
+            return ""
+
         c = Counter([a[goal] for a in annotation]).most_common(2)
         label, cnt = c[0]
+
+        self.stats_basic[f'total-{goal}'] += 1
+
         if cnt == self.full_agree:
             # fully agree!
-            self.stats[f'{goal}-agree'] += 1
-            self.stats[f'{goal}-agree-{label}'] += 1
+            self.stats_basic[f'{goal}-agree'] += 1
+            self.stats_detail[f'{goal}-agree-{label or "None"}'] += 1
         elif cnt >= self.majority_agree:
             # majority agree (3 vs 1)
-            self.stats[f'{goal}-3majority'] += 1
-            self.stats[f'{goal}-3majority-{label}'] += 1
+            self.stats_basic[f'{goal}-3majority'] += 1
+            self.stats_detail[f'{goal}-3majority-{label or "None"}'] += 1
         else:
             no2_label, no2_cnt = c[-1]
-            if no2_cnt == self.full_agree / 2:
-                # perfect split (2 vs 2)
-                self.stats[f'{goal}-split'] += 1
-                self.stats[f'{goal}-split-{label}+{no2_label}'] += 1
-                return "?"
-            else:
-                # majority split ( 2 vs 1 vs 1)
-                # todo: willen we dit of moet deze ook gecheckt worden?
-                self.stats[f'{goal}-2majority'] += 1
-                self.stats[f'{goal}-2majority-{label}'] += 1
 
-                return "?"  # als we deze ook willen controleren
+            label, no2_label = sorted([label or 'None', no2_label or 'None'])
+
+            # perfect split (2 vs 2) or majority split ( 2 vs 1 vs 1)
+            self.stats_basic[f'{goal}-split'] += 1
+            self.stats_detail[f'{goal}-split-{label}+{no2_label}'] += 1
+            return "?"
 
         return label
 
     def start(self):
         print("### Comparing Annotations ###")
         for _id, annotation in self.annotations.items():
-            self.tweets[_id]['explicitness'] = self.choose(annotation, 'explicitness')
-            self.tweets[_id]['target'] = self.choose(annotation, 'target')
+            if any([a.get('explicitness') for a in annotation]):
+                self.tweets[_id]['explicitness'] = self.choose(annotation, 'explicitness')
+                self.tweets[_id]['target'] = self.choose(annotation, 'target')
 
     def analyze(self):
         print("### Data Statistics ###")
-        pprint(self.stats)
+        pprint(self.stats_basic)
+        pprint(self.stats_detail)
 
     def count_todo(self):
         return sum([1 for t in self.tweets.values() if t.get('target') == "?" or t.get('explicitness') == '?'])
