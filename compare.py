@@ -46,8 +46,8 @@ class CompareTool:
                     annotations[row['id']].append({
                         'explicitness': row['explicitness'] or '',
                         'target': row['target'] or '',
-                        'id': row['id'],
-                        'who': file,
+                        #'id': row['id'],
+                        #'who': file,
                     })
                     if not row['id'] in tweets:
                         del row['explicitness']
