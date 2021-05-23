@@ -3,6 +3,7 @@
 # by Robin van der Noord, s3745686
 # Small modification by Victor Zwart, s3746186
 # Python 3.8 or better
+
 import sys
 import re
 import csv
@@ -12,6 +13,7 @@ ENCODING = 'UTF-8'
 
 
 class Tool:
+    # annotation labels
     EXPLICITNESS = {
         'e': 'EXPLICIT',
         'i': 'IMPLICIT',
@@ -25,6 +27,11 @@ class Tool:
     }
 
     def __init__(self, input_file, history_files):
+        """
+        read the input and previous annotation files,
+        build a history of already-annotated Tweets
+        and a todo-list of un-annotated Tweets.
+        """
         self.output_file = input_file
 
         username_re = re.compile(r'@(\w){1,15}')
@@ -33,7 +40,7 @@ class Tool:
         self.history = {}
         self.todo = []
 
-        #to read previous annotated files.
+        # to read previous annotated files.
         for history_file in history_files:
             with open(history_file, encoding=ENCODING) as f:
                 reader = csv.DictReader(f, delimiter='\t')
@@ -55,6 +62,9 @@ class Tool:
                 self.todo.append(line)
 
     def save(self):
+        """
+        Save the annotations to the output file (= input file for simplicity)
+        """
         print('saving')
 
         with open(self.output_file, 'w', newline='', encoding=ENCODING) as csvfile:
@@ -70,6 +80,12 @@ class Tool:
         exit()
 
     def annotate_tweet(self, index, tweet):
+        """
+        Show the Tweet and a prompt with the possible labels.
+        If a Tweet is basically the same as one seen before,
+        fill it in automatically.
+        """
+        
         # explicitness_score = None
         target_score = None
 
@@ -119,6 +135,9 @@ class Tool:
         self.history[tweet['stripped']] = (explicitness_score, target_score)
 
     def main(self):
+        """
+        Annotate everything in the todo list
+        """
         for (index, tweet) in enumerate(self.todo):
             try:
                 self.annotate_tweet(index, tweet)
